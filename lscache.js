@@ -41,6 +41,8 @@ var lscache = function() {
   var cachedJSON;
   var cacheBucket = '';
 
+  var l = {};
+
   // Determines if localStorage is supported in the browser;
   // result is cached for better performance instead of being run each time.
   // Feature detection is based on how Modernizr does it;
@@ -95,11 +97,25 @@ var lscache = function() {
    */
 
   function getItem(key) {
-    return localStorage.getItem(CACHE_PREFIX + cacheBucket + key);
+    var value = localStorage.getItem(CACHE_PREFIX + cacheBucket + key);
+   if(value===null){
+      if(l[key]===undefined) return null;
+      else return l[key].func();
+   }
+   return value;
   }
 
+  /**
+   * If value is an object, then save the function
+   * value: { func: function, params: object}
+   */
   function setItem(key, value) {
     // Fix for iPad issue - sometimes throws QUOTA_EXCEEDED_ERR on setItem.
+    // If it is a function, execute the function and set the value
+    if(typeof value === 'object'){
+      l[key] = value;
+      value = value.func(); // value is now the return value of the function
+    }
     localStorage.removeItem(CACHE_PREFIX + cacheBucket + key);
     localStorage.setItem(CACHE_PREFIX + cacheBucket + key, value);
   }
@@ -122,7 +138,7 @@ var lscache = function() {
       // If we don't get a string value, try to stringify
       // In future, localStorage may properly support storing non-strings
       // and this can be removed.
-      if (typeof value !== 'string') {
+      if (typeof value !== 'string' && typeof value !== 'object') {
         if (!supportsJSON()) return;
         try {
           value = JSON.stringify(value);
@@ -211,7 +227,14 @@ var lscache = function() {
         if (currentTime() >= expirationTime) {
           removeItem(key);
           removeItem(exprKey);
-          return null;
+
+          // We check if the item is a function. If it's we update
+          var value = getItem(key);
+          if(!value){
+            return null;
+          }
+          setItem(key, value);
+          setItem(expirationKey(key), (currentTime() + currentTime()-expirationTime).toString(EXPIRY_RADIX));
         }
       }
 

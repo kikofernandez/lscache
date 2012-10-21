@@ -2,7 +2,7 @@ var templates = function(){
 	var l = {};
 
 	function get(key){
-		return l[key];
+		return l[key].params == undefined ? l[key].func() : l[key].func(l[key].params);
 	}
 
 	function set(key, fun, opts){
