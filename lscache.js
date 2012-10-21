@@ -15,6 +15,14 @@
  * limitations under the License.
  */
 
+ /*
+Usage:
+
+>> var print = function(){return 'jajaja';}
+>> lscache.set('a', {func: print}, 1);
+>> lscache.get('a')
+ */
+
 /*jshint undef:true, browser:true */
 
 /**
@@ -112,7 +120,8 @@ var lscache = function() {
   function setItem(key, value) {
     // Fix for iPad issue - sometimes throws QUOTA_EXCEEDED_ERR on setItem.
     // If it is a function, execute the function and set the value
-    if(typeof value === 'object'){
+    if(value.constructor===Object && value.func!==undefined){
+      console.log('it is a function');
       l[key] = value;
       value = value.func(); // value is now the return value of the function
     }
@@ -138,14 +147,18 @@ var lscache = function() {
       // If we don't get a string value, try to stringify
       // In future, localStorage may properly support storing non-strings
       // and this can be removed.
-      if (typeof value !== 'string' && typeof value !== 'object') {
-        if (!supportsJSON()) return;
-        try {
-          value = JSON.stringify(value);
-        } catch (e) {
-          // Sometimes we can't stringify due to circular refs
-          // in complex objects, so we won't bother storing then.
-          return;
+      //if (typeof value !== 'string' && typeof value !== 'object') {
+      if (typeof value !== 'string') {
+        if(value.constructor === Object && value.func!==undefined){
+        }else{
+          if (!supportsJSON()) return;
+          try {
+            value = JSON.stringify(value);
+          } catch (e) {
+            // Sometimes we can't stringify due to circular refs
+            // in complex objects, so we won't bother storing then.
+            return;
+          }
         }
       }
 
@@ -229,6 +242,7 @@ var lscache = function() {
           removeItem(exprKey);
 
           // We check if the item is a function. If it's we update
+          
           var value = getItem(key);
           if(!value){
             return null;
